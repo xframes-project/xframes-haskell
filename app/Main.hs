@@ -2,16 +2,30 @@
 
 import Data.Aeson
 import GHC.Generics
+import qualified Data.ByteString.Lazy.Char8 as BS
 
-data Person = Person
+-- Individual font definition
+data FontDef = FontDef
   { name :: String
-  , age  :: Int
+  , size :: Int
   } deriving (Show, Generic)
 
-instance FromJSON Person
-instance ToJSON Person
+instance ToJSON FontDef
+
+-- Overall structure with "defs"
+data FontDefs = FontDefs
+  { defs :: [FontDef]
+  } deriving (Show, Generic)
+
+instance ToJSON FontDefs
+
+fontDefs :: FontDefs
+fontDefs = FontDefs $ concatMap (\(name, sizes) -> map (\size -> FontDef name size) sizes) fonts
+  where
+    fonts = [("roboto-regular", [16, 18, 20, 24, 28, 32, 36, 48])]
+
+jsonData :: String
+jsonData = BS.unpack $ encode fontDefs
 
 main :: IO ()
-main = do
-  let person = Person "Alice" 30
-  print $ encode person
+main = putStrLn jsonData
