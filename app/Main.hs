@@ -67,15 +67,11 @@ data ImGuiCol
   | COUNT
   deriving (Show, Eq, Ord, Generic, Enum)
 
-colToKey :: ImGuiCol -> String
-colToKey = show . fromEnum
-
--- ToJSONKey instance for ImGuiCol
-instance ToJSONKey ImGuiCol where
-  toJSONKey = toJSONKeyText (pack  . colToKey)
-
 instance ToJSON ImGuiCol where
-  toJSON col = String (pack $ colToKey col)
+  toJSON col = Number (fromIntegral $ fromEnum col)
+
+instance ToJSONKey ImGuiCol where
+  toJSONKey = toJSONKeyText (pack . show . fromEnum)
 
 theme2Colors :: Map.Map Text Text
 theme2Colors = Map.fromList
