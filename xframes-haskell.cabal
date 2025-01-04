@@ -81,3 +81,6 @@ executable xframes-haskell
 
     -- Base language which the package is written in.
     default-language: GHC2021
+
+    extra-lib-dirs:      ./
+    extra-libraries:     xframesshared

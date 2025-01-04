@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ForeignFunctionInterface #-}
 
 module Main where
 
@@ -9,6 +10,13 @@ import Data.Aeson
 import GHC.Generics
 import qualified Data.ByteString.Lazy.Char8 as BS
 import Data.Aeson.Types
+import Foreign
+import Foreign.C
+-- import Foreign.C.String
+import Control.Monad
+-- import Foreign.Marshal.Utils (toBool)
+import Foreign.Ptr ()
+import Control.Concurrent (forkIO, threadDelay)
 
 data ImGuiCol
   = Text
@@ -170,7 +178,102 @@ fontDefsJson = BS.unpack $ encode fontDefs
 theme2Json :: String
 theme2Json = BS.unpack $ encode theme2
 
+foreign import ccall "wrapper"
+  wrapOnInitCb :: (IO ()) -> IO (FunPtr (IO ()))
+foreign import ccall "wrapper"
+  wrapOnTextChangedCb :: (CInt -> CString -> IO ()) -> IO (FunPtr (CInt -> CString -> IO ()))
+foreign import ccall "wrapper"
+  wrapOnComboChangedCb :: (CInt -> CInt -> IO ()) -> IO (FunPtr (CInt -> CInt -> IO ()))
+foreign import ccall "wrapper"
+  wrapOnNumericValueChangedCb :: (CInt -> CFloat -> IO ()) -> IO (FunPtr (CInt -> CFloat -> IO ()))
+foreign import ccall "wrapper"
+  wrapOnBooleanValueChangedCb :: (CInt -> CBool -> IO ()) -> IO (FunPtr (CInt -> CBool -> IO ()))
+foreign import ccall "wrapper"
+  wrapOnMultipleNumericValuesChangedCb :: (CInt -> Ptr CFloat -> CInt -> IO ()) -> IO (FunPtr (CInt -> Ptr CFloat -> CInt -> IO ()))
+foreign import ccall "wrapper"
+  wrapOnClickCb :: (CInt -> IO ()) -> IO (FunPtr (CInt -> IO ()))
+
+
+type OnInitCb = FunPtr (IO ())
+type OnTextChangedCb = FunPtr (CInt -> CString -> IO ())
+type OnComboChangedCb = FunPtr (CInt -> CInt -> IO ())
+type OnNumericValueChangedCb = FunPtr (CInt -> CFloat -> IO ())
+type OnBooleanValueChangedCb = FunPtr (CInt -> CBool -> IO ())
+type OnMultipleNumericValuesChangedCb = FunPtr (CInt -> Ptr CFloat -> CInt -> IO ())
+type OnClickCb = FunPtr (CInt -> IO ())
+
+foreign import ccall "init" 
+    c_init :: CString       
+           -> CString        
+           -> CString        
+           -> OnInitCb      
+           -> OnTextChangedCb  
+           -> OnComboChangedCb 
+           -> OnNumericValueChangedCb  
+           -> OnBooleanValueChangedCb  
+           -> OnMultipleNumericValuesChangedCb
+           -> OnClickCb       
+           -> IO ()
+
+onInit :: IO ()
+onInit = putStrLn "Initialized"
+
+onTextChanged :: CInt -> CString -> IO ()
+onTextChanged _ _ = putStrLn "Text Changed"
+
+onComboChanged :: CInt -> CInt -> IO ()
+onComboChanged _ _ = putStrLn "Combo Changed"
+
+onNumericValueChanged :: CInt -> CFloat -> IO ()
+onNumericValueChanged _ _ = putStrLn "Numeric Value Changed"
+
+onBooleanValueChanged :: CInt -> CBool -> IO ()
+onBooleanValueChanged _ _ = putStrLn "Boolean Value Changed"
+
+onMultipleNumericValuesChanged :: CInt -> Ptr CFloat -> CInt -> IO ()
+onMultipleNumericValuesChanged _ _ _ = putStrLn "Multiple Numeric Values Changed"
+
+onClick :: CInt -> IO ()
+onClick _ = putStrLn "Clicked"
+
+infiniteLoop :: IO ()
+infiniteLoop = do
+  putStrLn "Press CTRL+C to terminate"
+  let loop = do
+        threadDelay 100000  -- Sleep for 100 ms
+        loop
+  loop
+
 main :: IO ()
 main = do
-  putStrLn fontDefsJson
-  putStrLn theme2Json
+    assetsBasePath <- newCString "./assets"
+    rawFontDefs <- newCString fontDefsJson
+    rawStyleDefs <- newCString theme2Json
+
+    onInitPtr <- wrapOnInitCb onInit
+    onTextChangedPtr <- wrapOnTextChangedCb onTextChanged
+    onComboChangedPtr <- wrapOnComboChangedCb onComboChanged
+    onNumericValueChangedPtr <- wrapOnNumericValueChangedCb onNumericValueChanged
+    onBooleanValueChangedPtr <- wrapOnBooleanValueChangedCb onBooleanValueChanged
+    onMultipleNumericValuesChangedPtr <- wrapOnMultipleNumericValuesChangedCb onMultipleNumericValuesChanged
+    onClickPtr <- wrapOnClickCb onClick
+
+    c_init assetsBasePath rawFontDefs rawStyleDefs
+                  onInitPtr
+                  onTextChangedPtr
+                  onComboChangedPtr
+                  onNumericValueChangedPtr
+                  onBooleanValueChangedPtr
+                  onMultipleNumericValuesChangedPtr
+                  onClickPtr
+
+    forever (threadDelay 1000000)
+
+    -- https://wiki.haskell.org/GHC/Using_the_FFI
+    freeHaskellFunPtr onInitPtr
+    freeHaskellFunPtr onTextChangedPtr
+    freeHaskellFunPtr onComboChangedPtr
+    freeHaskellFunPtr onNumericValueChangedPtr
+    freeHaskellFunPtr onBooleanValueChangedPtr
+    freeHaskellFunPtr onMultipleNumericValuesChangedPtr
+    freeHaskellFunPtr onClickPtr
