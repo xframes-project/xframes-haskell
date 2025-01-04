@@ -1,13 +1,14 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
+
 module Main where
 
 import qualified Data.Map.Strict as Map
-import Data.Text (Text, pack)
+import Data.Text (pack, Text)
 import Data.Aeson
 import GHC.Generics
 import qualified Data.ByteString.Lazy.Char8 as BS
-import Data.Aeson.Key (fromString)
+import Data.Aeson.Types
 
 data ImGuiCol
   = Text
@@ -66,63 +67,71 @@ data ImGuiCol
   | COUNT
   deriving (Show, Eq, Ord, Generic)
 
-instance ToJSON ImGuiCol where
-  toJSON Text = Number 0
-  toJSON TextDisabled = Number 1
-  toJSON WindowBg = Number 2
-  toJSON ChildBg = Number 3
-  toJSON PopupBg = Number 4
-  toJSON Border = Number 5
-  toJSON BorderShadow = Number 6
-  toJSON FrameBg = Number 7
-  toJSON FrameBgHovered = Number 8
-  toJSON FrameBgActive = Number 9
-  toJSON TitleBg = Number 10
-  toJSON TitleBgActive = Number 11
-  toJSON TitleBgCollapsed = Number 12
-  toJSON MenuBarBg = Number 13
-  toJSON ScrollbarBg = Number 14
-  toJSON ScrollbarGrab = Number 15
-  toJSON ScrollbarGrabHovered = Number 16
-  toJSON ScrollbarGrabActive = Number 17
-  toJSON CheckMark = Number 18
-  toJSON SliderGrab = Number 19
-  toJSON SliderGrabActive = Number 20
-  toJSON Button = Number 21
-  toJSON ButtonHovered = Number 22
-  toJSON ButtonActive = Number 23
-  toJSON Header = Number 24
-  toJSON HeaderHovered = Number 25
-  toJSON HeaderActive = Number 26
-  toJSON Separator = Number 27
-  toJSON SeparatorHovered = Number 28
-  toJSON SeparatorActive = Number 29
-  toJSON ResizeGrip = Number 30
-  toJSON ResizeGripHovered = Number 31
-  toJSON ResizeGripActive = Number 32
-  toJSON Tab = Number 33
-  toJSON TabHovered = Number 34
-  toJSON TabActive = Number 35
-  toJSON TabUnfocused = Number 36
-  toJSON TabUnfocusedActive = Number 37
-  toJSON PlotLines = Number 38
-  toJSON PlotLinesHovered = Number 39
-  toJSON PlotHistogram = Number 40
-  toJSON PlotHistogramHovered = Number 41
-  toJSON TableHeaderBg = Number 42
-  toJSON TableBorderStrong = Number 43
-  toJSON TableBorderLight = Number 44
-  toJSON TableRowBg = Number 45
-  toJSON TableRowBgAlt = Number 46
-  toJSON TextSelectedBg = Number 47
-  toJSON DragDropTarget = Number 48
-  toJSON NavHighlight = Number 49
-  toJSON NavWindowingHighlight = Number 50
-  toJSON NavWindowingDimBg = Number 51
-  toJSON ModalWindowDimBg = Number 52
-  toJSON COUNT = Number 53
 
--- Define the color constants
+
+colToKey :: ImGuiCol -> String
+colToKey Text = "0"
+colToKey TextDisabled = "1"
+colToKey WindowBg = "2"
+colToKey ChildBg = "3"
+colToKey PopupBg = "4"
+colToKey Border = "5"
+colToKey BorderShadow = "6"
+colToKey FrameBg = "7"
+colToKey FrameBgHovered = "8"
+colToKey FrameBgActive = "9"
+colToKey TitleBg = "10"
+colToKey TitleBgActive = "11"
+colToKey TitleBgCollapsed = "12"
+colToKey MenuBarBg = "13"
+colToKey ScrollbarBg = "14"
+colToKey ScrollbarGrab = "15"
+colToKey ScrollbarGrabHovered = "16"
+colToKey ScrollbarGrabActive = "17"
+colToKey CheckMark = "18"
+colToKey SliderGrab = "19"
+colToKey SliderGrabActive = "20"
+colToKey Button = "21"
+colToKey ButtonHovered = "22"
+colToKey ButtonActive = "23"
+colToKey Header = "24"
+colToKey HeaderHovered = "25"
+colToKey HeaderActive = "26"
+colToKey Separator = "27"
+colToKey SeparatorHovered = "28"
+colToKey SeparatorActive = "29"
+colToKey ResizeGrip = "30"
+colToKey ResizeGripHovered = "31"
+colToKey ResizeGripActive = "32"
+colToKey Tab = "33"
+colToKey TabHovered = "34"
+colToKey TabActive = "35"
+colToKey TabUnfocused = "36"
+colToKey TabUnfocusedActive = "37"
+colToKey PlotLines = "38"
+colToKey PlotLinesHovered = "39"
+colToKey PlotHistogram = "40"
+colToKey PlotHistogramHovered = "41"
+colToKey TableHeaderBg = "42"
+colToKey TableBorderStrong = "43"
+colToKey TableBorderLight = "44"
+colToKey TableRowBg = "45"
+colToKey TableRowBgAlt = "46"
+colToKey TextSelectedBg = "47"
+colToKey DragDropTarget = "48"
+colToKey NavHighlight = "49"
+colToKey NavWindowingHighlight = "50"
+colToKey NavWindowingDimBg = "51"
+colToKey ModalWindowDimBg = "52"
+colToKey COUNT = "53"
+
+-- ToJSONKey instance for ImGuiCol
+instance ToJSONKey ImGuiCol where
+  toJSONKey = toJSONKeyText (pack  . colToKey)
+
+instance ToJSON ImGuiCol where
+  toJSON col = String (pack $ colToKey col)
+
 theme2Colors :: Map.Map Text Text
 theme2Colors = Map.fromList
   [ ("darkestGrey", "#141f2c")
@@ -137,6 +146,7 @@ theme2Colors = Map.fromList
   , ("white", "#fff")
   ]
 
+-- Define the color theme
 theme2 :: Map.Map ImGuiCol (Text, Int)
 theme2 = Map.fromList
   [ (Text, (theme2Colors Map.! "white", 1))
@@ -196,7 +206,8 @@ theme2 = Map.fromList
 
 
 
--- Individual font definition
+
+
 data FontDef = FontDef
   { name :: String
   , size :: Int
@@ -219,10 +230,10 @@ fontDefs = FontDefs $ concatMap (\(name, sizes) -> map (\size -> FontDef name si
 fontDefsJson :: String
 fontDefsJson = BS.unpack $ encode fontDefs
 
--- theme2Json :: String
--- theme2Json = BS.unpack $ encode theme2
+theme2Json :: String
+theme2Json = BS.unpack $ encode theme2
 
 main :: IO ()
 main = do
   putStrLn fontDefsJson
-  -- putStrLn theme2Json
+  putStrLn theme2Json
