@@ -1,5 +1,9 @@
 # xframes-haskell
 
+## Status
+
+**Unstable**: It works, but I've yet to work out it occasionally terminates ahead of time. My suspicion is that the function pointers somehow get garbage collected too soon.
+
 ## Instructions
 
 ### Install Haskell
@@ -18,3 +22,7 @@ In particular, I ran the command in a PowerShell and installed GHCUP along with 
 
 - `cabal build`
 - `cabal run`
+
+## Screenshots
+
+Windows 11
