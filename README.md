@@ -20,6 +20,9 @@ In particular, I ran the command in a PowerShell and installed GHCUP along with 
 
 ### Running the application
 
+![image](https://github.com/user-attachments/assets/cf3f7951-05d6-4864-8bad-ae03ae561ee9)
+
+
 - `cabal build`
 - `cabal run`
 
