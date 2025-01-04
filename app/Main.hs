@@ -12,11 +12,12 @@ import qualified Data.ByteString.Lazy.Char8 as BS
 import Data.Aeson.Types
 import Foreign
 import Foreign.C
--- import Foreign.C.String
 import Control.Monad
--- import Foreign.Marshal.Utils (toBool)
 import Foreign.Ptr ()
 import Control.Concurrent (forkIO, threadDelay)
+import Data.HashMap.Strict (HashMap, fromList)
+import Control.Exception (catch, SomeException)
+import System.IO
 
 data ImGuiCol
   = Text
@@ -172,6 +173,36 @@ fontDefs = FontDefs $ concatMap (\(name, sizes) -> map (\size -> FontDef name si
   where
     fonts = [("roboto-regular", [16, 18, 20, 24, 28, 32, 36, 48])]
 
+-- instance ToJSON (HashMap Text ToJSON) where
+  -- toJSON = toJSON . fromList . map (\(k, v) -> (k, toJSON v)) . fromList
+
+rootNode :: HashMap Text Value
+rootNode = fromList 
+  [ ("id", Number 0)
+  , ("type", String "node")
+  , ("root", Bool True)
+  ]
+
+unformattedText :: HashMap Text Value
+unformattedText = fromList
+  [ ("id", Number 1)
+  , ("type", String "unformatted-text")
+  , ("text", String "Hello, world")
+  ]
+
+childrenIds :: [Int]
+childrenIds = [1]
+
+-- JSON Serialization
+rootNodeJson :: String
+rootNodeJson = BS.unpack $ encode rootNode
+
+unformattedTextJson :: String
+unformattedTextJson = BS.unpack $ encode unformattedText
+
+childrenIdsJson :: String
+childrenIdsJson = BS.unpack $ encode childrenIds
+
 fontDefsJson :: String
 fontDefsJson = BS.unpack $ encode fontDefs
 
@@ -215,8 +246,30 @@ foreign import ccall "init"
            -> OnClickCb       
            -> IO ()
 
+foreign import ccall "setElement" 
+    c_setElement :: CString       
+           -> IO ()
+
+foreign import ccall "setChildren" 
+    c_setChildren :: CInt     
+           -> CString
+           -> IO ()
+
 onInit :: IO ()
-onInit = putStrLn "Initialized"
+onInit = do
+    putStrLn "Initialized"
+
+    putStrLn rootNodeJson
+    putStrLn unformattedTextJson
+    putStrLn childrenIdsJson
+
+    rootNodeJsonCString <- newCString rootNodeJson
+    unformattedTextJsonCString <- newCString unformattedTextJson
+    childrenIdsJsonCString <- newCString childrenIdsJson
+
+    c_setElement rootNodeJsonCString
+    c_setElement unformattedTextJsonCString
+    c_setChildren 0 childrenIdsJsonCString
 
 onTextChanged :: CInt -> CString -> IO ()
 onTextChanged _ _ = putStrLn "Text Changed"
@@ -236,13 +289,17 @@ onMultipleNumericValuesChanged _ _ _ = putStrLn "Multiple Numeric Values Changed
 onClick :: CInt -> IO ()
 onClick _ = putStrLn "Clicked"
 
+handleException :: SomeException -> IO ()
+handleException e = do
+  putStrLn $ "Caught exception: " ++ show e
+
 infiniteLoop :: IO ()
 infiniteLoop = do
   putStrLn "Press CTRL+C to terminate"
   let loop = do
         threadDelay 100000  -- Sleep for 100 ms
         loop
-  loop
+  loop `catch` handleException
 
 main :: IO ()
 main = do
@@ -258,6 +315,8 @@ main = do
     onMultipleNumericValuesChangedPtr <- wrapOnMultipleNumericValuesChangedCb onMultipleNumericValuesChanged
     onClickPtr <- wrapOnClickCb onClick
 
+    putStrLn $ "About to call c_init"
+
     c_init assetsBasePath rawFontDefs rawStyleDefs
                   onInitPtr
                   onTextChangedPtr
@@ -267,7 +326,15 @@ main = do
                   onMultipleNumericValuesChangedPtr
                   onClickPtr
 
-    forever (threadDelay 1000000)
+
+    putStrLn $ "c_init called"
+
+    forkIO infiniteLoop
+    forever (threadDelay 100000)
+
+    putStrLn "Press enter to exit application"
+    _ <- getLine
+    putStrLn $ "Exiting..."
 
     -- https://wiki.haskell.org/GHC/Using_the_FFI
     freeHaskellFunPtr onInitPtr

@@ -24,4 +24,4 @@ cabal.project.local~
 .vscode
 *.exe
 *.dll
-*.dll
+*.so

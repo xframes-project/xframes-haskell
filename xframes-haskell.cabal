@@ -72,6 +72,8 @@ executable xframes-haskell
     -- Other library packages from which modules are imported.
     build-depends:    base ^>=4.17.2.1,
                       aeson ^>=2.2.3.0,
+                      hashable,
+                      unordered-containers,
                       bytestring ^>=0.12.2.0,
                       containers ^>=0.6.5.1,
                       text
