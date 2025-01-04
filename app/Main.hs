@@ -65,65 +65,10 @@ data ImGuiCol
   | NavWindowingDimBg
   | ModalWindowDimBg
   | COUNT
-  deriving (Show, Eq, Ord, Generic)
-
-
+  deriving (Show, Eq, Ord, Generic, Enum)
 
 colToKey :: ImGuiCol -> String
-colToKey Text = "0"
-colToKey TextDisabled = "1"
-colToKey WindowBg = "2"
-colToKey ChildBg = "3"
-colToKey PopupBg = "4"
-colToKey Border = "5"
-colToKey BorderShadow = "6"
-colToKey FrameBg = "7"
-colToKey FrameBgHovered = "8"
-colToKey FrameBgActive = "9"
-colToKey TitleBg = "10"
-colToKey TitleBgActive = "11"
-colToKey TitleBgCollapsed = "12"
-colToKey MenuBarBg = "13"
-colToKey ScrollbarBg = "14"
-colToKey ScrollbarGrab = "15"
-colToKey ScrollbarGrabHovered = "16"
-colToKey ScrollbarGrabActive = "17"
-colToKey CheckMark = "18"
-colToKey SliderGrab = "19"
-colToKey SliderGrabActive = "20"
-colToKey Button = "21"
-colToKey ButtonHovered = "22"
-colToKey ButtonActive = "23"
-colToKey Header = "24"
-colToKey HeaderHovered = "25"
-colToKey HeaderActive = "26"
-colToKey Separator = "27"
-colToKey SeparatorHovered = "28"
-colToKey SeparatorActive = "29"
-colToKey ResizeGrip = "30"
-colToKey ResizeGripHovered = "31"
-colToKey ResizeGripActive = "32"
-colToKey Tab = "33"
-colToKey TabHovered = "34"
-colToKey TabActive = "35"
-colToKey TabUnfocused = "36"
-colToKey TabUnfocusedActive = "37"
-colToKey PlotLines = "38"
-colToKey PlotLinesHovered = "39"
-colToKey PlotHistogram = "40"
-colToKey PlotHistogramHovered = "41"
-colToKey TableHeaderBg = "42"
-colToKey TableBorderStrong = "43"
-colToKey TableBorderLight = "44"
-colToKey TableRowBg = "45"
-colToKey TableRowBgAlt = "46"
-colToKey TextSelectedBg = "47"
-colToKey DragDropTarget = "48"
-colToKey NavHighlight = "49"
-colToKey NavWindowingHighlight = "50"
-colToKey NavWindowingDimBg = "51"
-colToKey ModalWindowDimBg = "52"
-colToKey COUNT = "53"
+colToKey = show . fromEnum
 
 -- ToJSONKey instance for ImGuiCol
 instance ToJSONKey ImGuiCol where
@@ -203,10 +148,6 @@ theme2 = Map.fromList
   , (NavWindowingDimBg, (theme2Colors Map.! "darkerGrey", 1))
   , (ModalWindowDimBg, (theme2Colors Map.! "darkerGrey", 1))
   ]
-
-
-
-
 
 data FontDef = FontDef
   { name :: String
