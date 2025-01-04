@@ -18,6 +18,7 @@ import Control.Concurrent (forkIO, threadDelay)
 import Data.HashMap.Strict (HashMap, fromList)
 import Control.Exception (catch, SomeException)
 import System.IO
+import System.IO.Unsafe (unsafePerformIO)
 
 data ImGuiCol
   = Text
@@ -259,10 +260,6 @@ onInit :: IO ()
 onInit = do
     putStrLn "Initialized"
 
-    putStrLn rootNodeJson
-    putStrLn unformattedTextJson
-    putStrLn childrenIdsJson
-
     rootNodeJsonCString <- newCString rootNodeJson
     unformattedTextJsonCString <- newCString unformattedTextJson
     childrenIdsJsonCString <- newCString childrenIdsJson
@@ -301,19 +298,41 @@ infiniteLoop = do
         loop
   loop `catch` handleException
 
+
+onInitPtr :: FunPtr (IO ())
+onInitPtr = unsafePerformIO (wrapOnInitCb onInit)
+
+onTextChangedPtr :: FunPtr (CInt -> CString -> IO ())
+onTextChangedPtr = unsafePerformIO (wrapOnTextChangedCb onTextChanged)
+
+onComboChangedPtr :: FunPtr (CInt -> CInt -> IO ())
+onComboChangedPtr = unsafePerformIO (wrapOnComboChangedCb onComboChanged)
+
+onNumericValueChangedPtr :: FunPtr (CInt -> CFloat -> IO ())
+onNumericValueChangedPtr = unsafePerformIO (wrapOnNumericValueChangedCb onNumericValueChanged)
+
+onBooleanValueChangedPtr :: FunPtr (CInt -> CBool -> IO ())
+onBooleanValueChangedPtr = unsafePerformIO (wrapOnBooleanValueChangedCb onBooleanValueChanged)
+
+onMultipleNumericValuesChangedPtr :: FunPtr (CInt -> Ptr CFloat -> CInt -> IO ())
+onMultipleNumericValuesChangedPtr = unsafePerformIO (wrapOnMultipleNumericValuesChangedCb onMultipleNumericValuesChanged)
+
+onClickPtr :: FunPtr (CInt -> IO ())
+onClickPtr = unsafePerformIO (wrapOnClickCb onClick)
+
 main :: IO ()
 main = do
     assetsBasePath <- newCString "./assets"
     rawFontDefs <- newCString fontDefsJson
     rawStyleDefs <- newCString theme2Json
 
-    onInitPtr <- wrapOnInitCb onInit
-    onTextChangedPtr <- wrapOnTextChangedCb onTextChanged
-    onComboChangedPtr <- wrapOnComboChangedCb onComboChanged
-    onNumericValueChangedPtr <- wrapOnNumericValueChangedCb onNumericValueChanged
-    onBooleanValueChangedPtr <- wrapOnBooleanValueChangedCb onBooleanValueChanged
-    onMultipleNumericValuesChangedPtr <- wrapOnMultipleNumericValuesChangedCb onMultipleNumericValuesChanged
-    onClickPtr <- wrapOnClickCb onClick
+    -- onInitPtr <- wrapOnInitCb onInit
+    -- onTextChangedPtr <- wrapOnTextChangedCb onTextChanged
+    -- onComboChangedPtr <- wrapOnComboChangedCb onComboChanged
+    -- onNumericValueChangedPtr <- wrapOnNumericValueChangedCb onNumericValueChanged
+    -- onBooleanValueChangedPtr <- wrapOnBooleanValueChangedCb onBooleanValueChanged
+    -- onMultipleNumericValuesChangedPtr <- wrapOnMultipleNumericValuesChangedCb onMultipleNumericValuesChanged
+    -- onClickPtr <- wrapOnClickCb onClick
 
     putStrLn $ "About to call c_init"
 
