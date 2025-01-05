@@ -12,13 +12,9 @@ import qualified Data.ByteString.Lazy.Char8 as BS
 import Data.Aeson.Types
 import Foreign
 import Foreign.C
-import Control.Monad
 import Foreign.Ptr ()
-import Control.Concurrent (forkIO, threadDelay)
+import Control.Concurrent
 import Data.HashMap.Strict (HashMap, fromList)
-import Control.Exception (catch, SomeException)
-import System.IO
-import System.IO.Unsafe (unsafePerformIO)
 
 data ImGuiCol
   = Text
@@ -162,7 +158,6 @@ data FontDef = FontDef
 
 instance ToJSON FontDef
 
--- Overall structure with "defs"
 data FontDefs = FontDefs
   { defs :: [FontDef]
   } deriving (Show, Generic)
@@ -173,9 +168,6 @@ fontDefs :: FontDefs
 fontDefs = FontDefs $ concatMap (\(name, sizes) -> map (\size -> FontDef name size) sizes) fonts
   where
     fonts = [("roboto-regular", [16, 18, 20, 24, 28, 32, 36, 48])]
-
--- instance ToJSON (HashMap Text ToJSON) where
-  -- toJSON = toJSON . fromList . map (\(k, v) -> (k, toJSON v)) . fromList
 
 rootNode :: HashMap Text Value
 rootNode = fromList 
@@ -286,55 +278,20 @@ onMultipleNumericValuesChanged _ _ _ = putStrLn "Multiple Numeric Values Changed
 onClick :: CInt -> IO ()
 onClick _ = putStrLn "Clicked"
 
-handleException :: SomeException -> IO ()
-handleException e = do
-  putStrLn $ "Caught exception: " ++ show e
-
-infiniteLoop :: IO ()
-infiniteLoop = do
-  putStrLn "Press CTRL+C to terminate"
-  let loop = do
-        threadDelay 100000  -- Sleep for 100 ms
-        loop
-  loop `catch` handleException
-
-
-onInitPtr :: FunPtr (IO ())
-onInitPtr = unsafePerformIO (wrapOnInitCb onInit)
-
-onTextChangedPtr :: FunPtr (CInt -> CString -> IO ())
-onTextChangedPtr = unsafePerformIO (wrapOnTextChangedCb onTextChanged)
-
-onComboChangedPtr :: FunPtr (CInt -> CInt -> IO ())
-onComboChangedPtr = unsafePerformIO (wrapOnComboChangedCb onComboChanged)
-
-onNumericValueChangedPtr :: FunPtr (CInt -> CFloat -> IO ())
-onNumericValueChangedPtr = unsafePerformIO (wrapOnNumericValueChangedCb onNumericValueChanged)
-
-onBooleanValueChangedPtr :: FunPtr (CInt -> CBool -> IO ())
-onBooleanValueChangedPtr = unsafePerformIO (wrapOnBooleanValueChangedCb onBooleanValueChanged)
-
-onMultipleNumericValuesChangedPtr :: FunPtr (CInt -> Ptr CFloat -> CInt -> IO ())
-onMultipleNumericValuesChangedPtr = unsafePerformIO (wrapOnMultipleNumericValuesChangedCb onMultipleNumericValuesChanged)
-
-onClickPtr :: FunPtr (CInt -> IO ())
-onClickPtr = unsafePerformIO (wrapOnClickCb onClick)
-
+-- runInBoundThread is essential
 main :: IO ()
-main = do
+main = runInBoundThread $ do
     assetsBasePath <- newCString "./assets"
     rawFontDefs <- newCString fontDefsJson
     rawStyleDefs <- newCString theme2Json
 
-    -- onInitPtr <- wrapOnInitCb onInit
-    -- onTextChangedPtr <- wrapOnTextChangedCb onTextChanged
-    -- onComboChangedPtr <- wrapOnComboChangedCb onComboChanged
-    -- onNumericValueChangedPtr <- wrapOnNumericValueChangedCb onNumericValueChanged
-    -- onBooleanValueChangedPtr <- wrapOnBooleanValueChangedCb onBooleanValueChanged
-    -- onMultipleNumericValuesChangedPtr <- wrapOnMultipleNumericValuesChangedCb onMultipleNumericValuesChanged
-    -- onClickPtr <- wrapOnClickCb onClick
-
-    putStrLn $ "About to call c_init"
+    onInitPtr <- wrapOnInitCb onInit
+    onTextChangedPtr <- wrapOnTextChangedCb onTextChanged
+    onComboChangedPtr <- wrapOnComboChangedCb onComboChanged
+    onNumericValueChangedPtr <- wrapOnNumericValueChangedCb onNumericValueChanged
+    onBooleanValueChangedPtr <- wrapOnBooleanValueChangedCb onBooleanValueChanged
+    onMultipleNumericValuesChangedPtr <- wrapOnMultipleNumericValuesChangedCb onMultipleNumericValuesChanged
+    onClickPtr <- wrapOnClickCb onClick
 
     c_init assetsBasePath rawFontDefs rawStyleDefs
                   onInitPtr
@@ -344,12 +301,6 @@ main = do
                   onBooleanValueChangedPtr
                   onMultipleNumericValuesChangedPtr
                   onClickPtr
-
-
-    putStrLn $ "c_init called"
-
-    forkIO infiniteLoop
-    forever (threadDelay 100000)
 
     putStrLn "Press enter to exit application"
     _ <- getLine
