@@ -4,11 +4,15 @@
 
 ### Install Haskell
 
-#### Windows
-
 I followed the instructions found on this page: https://www.haskell.org/ghcup/
 
-In particular, I ran the command in a PowerShell and installed GHCUP along with the MSYS2 toolchain, then GHC 9.4.8 and cabal.
+#### Linux
+
+Once you run the online installer all you need to do is restart your terminal.
+
+#### Windows
+
+I ran the command in a PowerShell and installed GHCUP along with the MSYS2 toolchain, then GHC 9.4.8 and cabal.
 
 ### Install dependencies
 
